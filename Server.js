@@ -11,7 +11,6 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import verifyToken from './middleware/auth.js'
 
-const MONGO_URL = process.env.MONGO_URI
 await mongoose.connect(process.env.MONGO_URI)
 
 const app = express()
