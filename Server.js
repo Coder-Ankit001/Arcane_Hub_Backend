@@ -15,7 +15,7 @@ const MONGO_URL = process.env.MONGO_URI
 await mongoose.connect(process.env.MONGO_URI)
 
 const app = express()
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json())
 app.use(cookieParser())
@@ -133,6 +133,6 @@ app.post('/user', verifyToken, (req, res)=>{
 })
 
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+app.listen(PORT, () => {
+    console.log(`Server is running on ${PORT}`)
 })
