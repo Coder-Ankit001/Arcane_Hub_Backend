@@ -15,26 +15,32 @@ await mongoose.connect(process.env.MONGO_URI)
 
 const app = express()
 const PORT = process.env.PORT || 5000;
+const isProd = process.env.ENVIRONMENT == "production"
 
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors())
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true
+}))
+
 
 app.get('/', (req, res) => {
-    res.send('Hello World!')
+    res.send('Server is running...')
 })
 
+// Register User
 app.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body
 
         if (!(username && email && password)) {
-            return res.status(400).send('All Fields are Required')
+            return res.status(400).send('*All Fields are Required')
         }
 
         const userExists = await User.findOne({ email: email })
         if (userExists) {
-            return res.status(409).send('User Already Exists')
+            return res.status(409).send('*User Already Exists')
         }
 
         const encPass = await bcrypt.hash(password, 10)
@@ -42,7 +48,10 @@ app.post('/register', async (req, res) => {
         const user = await User.create({ username, email, password: encPass })
 
         const token = jwt.sign(
-            { user_id: user._id },
+            { 
+                user_id: user._id,
+                user_email: user.email
+            },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
         )
@@ -61,6 +70,7 @@ app.post('/register', async (req, res) => {
 
 })
 
+// Login User
 app.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body
@@ -74,14 +84,17 @@ app.post('/login', async (req, res) => {
             return res.status(409).send('*User Doesn\'t Exist')
         }
 
-        const check = await bcrypt.compare(password, user.password)
+        const valid_password = await bcrypt.compare(password, user.password)
 
-        if (!check) {
+        if (!valid_password) {
             return res.status(401).send('*Password is Incorrect')
         }
 
         const token = jwt.sign(
-            { user_id: user._id },
+            { 
+                user_id: user._id,
+                user_email: user.email
+            },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
         )
@@ -90,16 +103,17 @@ app.post('/login', async (req, res) => {
         user.password = undefined
 
         const options = {
-            expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-            httpOnly: true
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? 'None' : 'Lax',
+            maxAge: 2 * 60 * 60 * 1000
         }
 
 
 
         res.status(200).cookie('token', token, options).json({
             success: true,
-            token,
-            user
+            userData: user
         })
     }
 
@@ -110,6 +124,13 @@ app.post('/login', async (req, res) => {
 
 })
 
+// Token Verification
+app.get('/me', verifyToken, async (req, res) => {
+    const user = await User.findById(req.user.user_id).select('-password');
+    res.json(user);
+})
+
+// User Wishlist
 app.post('/wishlist', async(req, res)=>{
     const{username, data} = req.body
     try{
@@ -127,9 +148,6 @@ app.post('/wishlist', async(req, res)=>{
 
 })
 
-app.post('/user', verifyToken, (req, res)=>{
-    return res.status(200).send('Token is valid. Access granted to /user.')
-})
 
 
 app.listen(PORT, () => {
