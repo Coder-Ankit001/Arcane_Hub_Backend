@@ -56,11 +56,20 @@ app.post('/register', async (req, res) => {
             { expiresIn: '2h' }
         )
 
-        const userData = user.toObject()
-        userData.token = token
-        delete userData.password
+        user.token = token
+        user.password = undefined
 
-        res.status(201).json(userData)
+        const options = {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? 'None' : 'Lax',
+            maxAge: 2 * 60 * 60 * 1000
+        }
+
+        res.status(200).cookie('token', token, options).json({
+            success: true,
+            userData: user
+        })
     }
 
     catch (err) {
@@ -109,8 +118,6 @@ app.post('/login', async (req, res) => {
             maxAge: 2 * 60 * 60 * 1000
         }
 
-
-
         res.status(200).cookie('token', token, options).json({
             success: true,
             userData: user
@@ -147,8 +154,6 @@ app.post('/wishlist', async(req, res)=>{
     }
 
 })
-
-
 
 app.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`)
