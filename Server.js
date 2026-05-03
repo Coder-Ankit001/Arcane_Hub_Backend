@@ -19,10 +19,22 @@ const isProd = process.env.ENVIRONMENT == "production"
 
 app.use(express.json())
 app.use(cookieParser())
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://arcanehubfrontendvercel.vercel.app"
+];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS blocked: " + origin));
+    }
+  },
   credentials: true
-}))
+}));
 
 
 app.get('/', (req, res) => {
