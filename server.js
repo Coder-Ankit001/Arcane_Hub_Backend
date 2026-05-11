@@ -12,7 +12,6 @@ import jwt from 'jsonwebtoken'
 import verifyToken from './middleware/auth.js'
 
 await mongoose.connect(process.env.MONGO_URI)
-
 const app = express()
 const PORT = process.env.PORT || 5000;
 const isProd = process.env.ENVIRONMENT == "production"
